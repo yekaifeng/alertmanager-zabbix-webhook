@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/vendored/github.com/blacked/go-zabbix" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/vendored/github.com/sirupsen/logrus" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/vendored/golang.org/x/sys" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/vendored/gopkg.in/yaml.v2" vcs="Git" />
+  </component>
+</project>
