@@ -3,7 +3,7 @@ FROM golang:1 as build
 
 WORKDIR /go/src/github.com/gmauleon/alertmanager-zabbix-webhook
 
-ADD vendor/* /go/src/
+ADD vendored/* /go/src/
 ADD . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o alertmanager-zabbix-webhook .
