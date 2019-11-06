@@ -1,4 +1,25 @@
 global:
+  resolve_timeout: 5m
+route:
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  receiver: 'zabbix'
+  routes:
+    - match:
+        alertname: DeadMansSwitch
+      repeat_interval: 5m
+      receiver: deadmansswitch
+receivers:
+  - name: deadmansswitch
+  - name: 'zabbix'
+    webhook_configs:
+      - url: http://172.26.7.172:80/alerts
+        send_resolved: true
+
+
+
+global:
   resolve_timeout: 1m
 route:
   receiver: 'zabbix'

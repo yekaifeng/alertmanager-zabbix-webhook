@@ -29,6 +29,7 @@ type WebHookConfig struct {
 	ZabbixHostDefault    string `yaml:"zabbixHostDefault"`
 	ZabbixHostAnnotation string `yaml:"zabbixHostAnnotation"`
 	ZabbixKeyPrefix      string `yaml:"zabbixKeyPrefix"`
+	OcpPortalAddress     string `yaml:"OcpPortalAddress"`
 }
 
 type HookRequest struct {
@@ -138,7 +139,7 @@ func (hook *WebHook) processAlerts() {
 	log.Info("Alerts queue started")
 
 	// While there are alerts in the queue, batch them and send them over to Zabbix
-	var metrics []*zabbix.Metric
+	var metrics []*zabbix.AlertMetric
 	for {
 		select {
 		case a := <-hook.channel:
@@ -152,20 +153,65 @@ func (hook *WebHook) processAlerts() {
 				host = hook.config.ZabbixHostDefault
 			}
 
+			deviceIp := hook.config.OcpPortalAddress
 			// Send alerts only if a host annotation is present or configuration for default host is not empty
 			if host != "" {
-				key := fmt.Sprintf("%s.%s", hook.config.ZabbixKeyPrefix, strings.ToLower(a.Labels["alertname"]))
-				value := "0"
+				var alertLevel = ""
+				var subject = ""
+				var alertStartTime = ""
+				var id = ""
+				alertname := fmt.Sprintf("%s.%s", hook.config.ZabbixKeyPrefix, strings.ToLower(a.Labels["alertname"]))
+				alertStatus := false
 				if a.Status == "firing" {
-					value = "1"
+					alertStatus = true
 				}
 
-				log.Infof("added Zabbix metrics, host: '%s' key: '%s', value: '%s'", host, key, value)
-				metrics = append(metrics, zabbix.NewMetric(host, key, value))
+				//Collect alert informations fro description and message in Annotation
+				if _, ok := a.Annotations["description"]; ok {
+					subject += fmt.Sprintf("%s: %s",alertname, strings.ToLower(a.Annotations["description"]))
+				} else if _, ok := a.Annotations["message"]; ok {
+					subject += fmt.Sprintf("%s: %s", alertname, strings.ToLower(a.Annotations["message"]))
+				}
+
+				//Process alert start time
+				t, err := time.Parse(
+					time.RFC3339,
+					fmt.Sprintf("%s", strings.ToLower(a.StartsAt)))
+
+                if err == nil {
+					alertStartTime = fmt.Sprintf("%d%02d%02d%02d%02d%02d",
+								t.Year(), t.Month(), t.Day(),
+								t.Hour(), t.Minute(), t.Second())
+					//use time as alert id
+					id = fmt.Sprintf("%d%02d%02d%02d%02d%02d",
+						t.Year(), t.Month(), t.Day(),
+						t.Hour(), t.Minute(), t.Second(), t.Nanosecond())
+				}
+				cluster := fmt.Sprintf("%s", strings.ToLower(a.Labels["cluster"]))
+				severity := fmt.Sprintf("%s", strings.ToLower(a.Labels["severity"]))
+
+				// classify alert level
+				if severity == "critical" {
+					alertLevel = "5"
+				} else if severity == "warning" {
+					alertLevel = "3"
+				} else {
+					alertLevel = "2"
+				}
+
+				log.Infof("added Zabbix alertmetrics, ALERTLEVEL: '%s', ALERT_START_TIME: '%s', ALERT_STATUS: '%s'," +
+					"CUR_MONI_VALUE: '%s', DEVICE_IP: '%s', ID: '%s', MONI_OBJECT: '%s', SUBJECT: '%s'",
+					alertLevel, alertStartTime, alertStatus, 0, deviceIp, id, cluster, subject)
+
+				//metrics = append(metrics, zabbix.NewAlertMetric(alertLevel, alertStartTime, device_ip, moni_object, subject,
+				//	alertStatus, cur_moni_value, id))
+
+				metrics = append(metrics, zabbix.NewAlertMetric(alertLevel, alertStartTime, deviceIp, cluster, subject, id,
+					alertStatus, 0))
 			}
 		default:
 			if len(metrics) != 0 {
-				hook.zabbixSend(metrics)
+				hook.zabbixAlertSend(metrics)
 				metrics = metrics[:0]
 			} else {
 				time.Sleep(1 * time.Second)
@@ -185,7 +231,23 @@ func (hook *WebHook) zabbixSend(metrics []*zabbix.Metric) {
 	if err != nil {
 		log.Error(err)
 	} else {
-		log.Info("successfully sent")
+		log.Info("successfully sent metrics")
+	}
+
+}
+
+func (hook *WebHook) zabbixAlertSend(metrics []*zabbix.AlertMetric) {
+	// Create instance of Packet class
+	packet := zabbix.NewAlertPacket(metrics)
+
+	// Send packet to zabbix
+	log.Infof("sending to zabbix '%s:%d'", hook.config.ZabbixServerHost, hook.config.ZabbixServerPort)
+	z := zabbix.NewSender(hook.config.ZabbixServerHost, hook.config.ZabbixServerPort)
+	_, err := z.AlertSend(packet)
+	if err != nil {
+		log.Error(err)
+	} else {
+		log.Info("successfully sent alert")
 	}
 
 }

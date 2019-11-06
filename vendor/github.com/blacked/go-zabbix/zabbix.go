@@ -18,6 +18,17 @@ type Metric struct {
 	Clock int64  `json:"clock"`
 }
 
+type AlertMetric struct {
+	Alert_level      string `json:"ALERT_LEVEL"`
+	Alert_start_time string `json:"ALERT_START_TIME"`
+	Alert_status     bool   `json:"ALERT_STATUS"`
+	Cur_moni_value   uint16 `json:"CUR_MONI_VALUE"`
+	Device_ip        string `json:"DEVICE_IP"`
+	Id               string `json:"ID"`
+	Moni_object      string `json:"MONI_OBJECT"`
+	Subject          string `json:"SUBJECT"`
+}
+
 // Metric class constructor.
 func NewMetric(host, key, value string, clock ...int64) *Metric {
 	m := &Metric{Host: host, Key: key, Value: value}
@@ -28,10 +39,30 @@ func NewMetric(host, key, value string, clock ...int64) *Metric {
 	return m
 }
 
+// Metric class constructor.
+func NewAlertMetric(alert_level, alert_start_time, device_ip, moni_object, subject, id string,
+	alert_status bool, cur_moni_value uint16) *AlertMetric {
+	m := &AlertMetric{Alert_level: alert_level,
+		              Alert_start_time: alert_start_time,
+	                  Alert_status: alert_status,
+	                  Cur_moni_value: cur_moni_value,
+	                  Device_ip: device_ip,
+	                  Id: id,
+	                  Moni_object: moni_object,
+	                  Subject: subject}
+	return m
+}
+
 // Packet class.
 type Packet struct {
 	Request string    `json:"request"`
 	Data    []*Metric `json:"data"`
+	Clock   int64     `json:"clock"`
+}
+
+type AlertPacket struct{
+	Request string    `json:"request"`
+	Data    []*AlertMetric `json:"data"`
 	Clock   int64     `json:"clock"`
 }
 
@@ -45,8 +76,25 @@ func NewPacket(data []*Metric, clock ...int64) *Packet {
 	return p
 }
 
+// Packet class cunstructor.
+func NewAlertPacket(data []*AlertMetric, clock ...int64) *AlertPacket {
+	p := &AlertPacket{Request: `sender data`, Data: data}
+	// use current time, if `clock` is not specified
+	if p.Clock = time.Now().Unix(); len(clock) > 0 {
+		p.Clock = int64(clock[0])
+	}
+	return p
+}
+
 // DataLen Packet class method, return 8 bytes with packet length in little endian order.
 func (p *Packet) DataLen() []byte {
+	dataLen := make([]byte, 8)
+	JSONData, _ := json.Marshal(p)
+	binary.LittleEndian.PutUint32(dataLen, uint32(len(JSONData)))
+	return dataLen
+}
+
+func (p *AlertPacket) DataLen() []byte {
 	dataLen := make([]byte, 8)
 	JSONData, _ := json.Marshal(p)
 	binary.LittleEndian.PutUint32(dataLen, uint32(len(JSONData)))
@@ -136,6 +184,41 @@ func (s *Sender) read(conn *net.TCPConn) (res []byte, err error) {
 
 // Method Sender class, send packet to zabbix.
 func (s *Sender) Send(packet *Packet) (res []byte, err error) {
+	conn, err := s.connect()
+	if err != nil {
+		return
+	}
+	defer conn.Close()
+
+	dataPacket, _ := json.Marshal(packet)
+
+	/*
+	   fmt.Printf("HEADER: % x (%s)\n", s.getHeader(), s.getHeader())
+	   fmt.Printf("DATALEN: % x, %d byte\n", packet.DataLen(), len(packet.DataLen()))
+	   fmt.Printf("BODY: %s\n", string(dataPacket))
+	*/
+
+	// Fill buffer
+	buffer := append(s.getHeader(), packet.DataLen()...)
+	buffer = append(buffer, dataPacket...)
+
+	// Sent packet to zabbix
+	_, err = conn.Write(buffer)
+	if err != nil {
+		err = fmt.Errorf("Error while sending the data: %s", err.Error())
+		return
+	}
+
+	res, err = s.read(conn)
+
+	/*
+	   fmt.Printf("RESPONSE: %s\n", string(res))
+	*/
+	return
+}
+
+// Method Sender class, send packet to zabbix.
+func (s *Sender) AlertSend(packet *AlertPacket) (res []byte, err error) {
 	conn, err := s.connect()
 	if err != nil {
 		return
