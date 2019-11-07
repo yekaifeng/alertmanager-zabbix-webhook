@@ -137,8 +137,9 @@ func (hook *WebHook) postHandler(w http.ResponseWriter, r *http.Request) {
 	data := re.ReplaceAllString(string(body), `generatorURL":"`)
 	log.Info("new data: %v:", data)
 
+	dataByte := []byte(data)
 	if err == nil && data != "" {
-		err = json.Unmarshal([]byte(data), m)
+		err = json.Unmarshal(dataByte, m)
 	}
 
 	log.Info("http request: %v", m)
