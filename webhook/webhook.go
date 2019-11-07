@@ -51,7 +51,7 @@ type Alert struct {
 	Annotations  map[string]string `json:"annotations"`
 	StartsAt     string            `json:"startsAt,omitempty"`
 	EndsAt       string            `json:"endsAt,omitempty"`
-	GeneratorURL string            `json:"generatorURL"`
+	GeneratorURL string            `json:"generatorURL,omitempty"`
 }
 
 func New(cfg *WebHookConfig) *WebHook {
@@ -129,7 +129,7 @@ func (hook *WebHook) postHandler(w http.ResponseWriter, r *http.Request) {
 	//	return
 	//}
 
-	var m HookRequest
+	var m = HookRequest{}
 	body, err := ioutil.ReadAll(r.Body)
 
 	//workaround to remove quotation marks in generatorURL
@@ -138,8 +138,8 @@ func (hook *WebHook) postHandler(w http.ResponseWriter, r *http.Request) {
 	log.Info("new data: %v:", data)
 
 	dataByte := []byte(data)
-	if err == nil && data != "" {
-		err = json.Unmarshal(dataByte, m)
+	if err == nil && dataByte != nil {
+		err = json.Unmarshal(dataByte, &m)
 	}
 
 	log.Info("http request: %v", m)
