@@ -128,6 +128,7 @@ func (hook *WebHook) postHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Info("http request: %s", m)
 	for index := range m.Alerts {
 		hook.channel <- &m.Alerts[index]
 	}
@@ -168,7 +169,7 @@ func (hook *WebHook) processAlerts() {
 
 				//Collect alert informations fro description and message in Annotation
 				if _, ok := a.Annotations["description"]; ok {
-					subject += fmt.Sprintf("%s: %s",alertname, strings.ToLower(a.Annotations["description"]))
+					subject += fmt.Sprintf("%s: %s", alertname, strings.ToLower(a.Annotations["description"]))
 				} else if _, ok := a.Annotations["message"]; ok {
 					subject += fmt.Sprintf("%s: %s", alertname, strings.ToLower(a.Annotations["message"]))
 				}
@@ -178,10 +179,10 @@ func (hook *WebHook) processAlerts() {
 					time.RFC3339,
 					fmt.Sprintf("%s", strings.ToLower(a.StartsAt)))
 
-                if err == nil {
+				if err == nil {
 					alertStartTime = fmt.Sprintf("%d%02d%02d%02d%02d%02d",
-								t.Year(), t.Month(), t.Day(),
-								t.Hour(), t.Minute(), t.Second())
+						t.Year(), t.Month(), t.Day(),
+						t.Hour(), t.Minute(), t.Second())
 					//use time as alert id
 					id = fmt.Sprintf("%d%02d%02d%02d%02d%02d",
 						t.Year(), t.Month(), t.Day(),
@@ -199,7 +200,7 @@ func (hook *WebHook) processAlerts() {
 					alertLevel = "2"
 				}
 
-				log.Infof("added Zabbix alertmetrics, ALERTLEVEL: '%s', ALERT_START_TIME: '%s', ALERT_STATUS: '%s'," +
+				log.Infof("added Zabbix alertmetrics, ALERTLEVEL: '%s', ALERT_START_TIME: '%s', ALERT_STATUS: '%s',"+
 					"CUR_MONI_VALUE: '%s', DEVICE_IP: '%s', ID: '%s', MONI_OBJECT: '%s', SUBJECT: '%s'",
 					alertLevel, alertStartTime, alertStatus, 0, deviceIp, id, cluster, subject)
 
