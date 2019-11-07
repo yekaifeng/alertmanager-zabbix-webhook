@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -118,17 +119,29 @@ func (hook *WebHook) alertsHandler(w http.ResponseWriter, r *http.Request) {
 
 func (hook *WebHook) postHandler(w http.ResponseWriter, r *http.Request) {
 
-	dec := json.NewDecoder(r.Body)
-	defer r.Body.Close()
+	//dec := json.NewDecoder(r.Body)
+	//defer r.Body.Close()
+
+	//var m HookRequest
+	//if err := dec.Decode(&m); err != nil {
+	//	log.Errorf("error decoding message: %v", err)
+	//	http.Error(w, "request body is not valid json", 400)
+	//	return
+	//}
 
 	var m HookRequest
-	if err := dec.Decode(&m); err != nil {
-		log.Errorf("error decoding message: %v", err)
-		http.Error(w, "request body is not valid json", 400)
-		return
+	body, err := ioutil.ReadAll(r.Body)
+
+	//workaround to remove quotation marks in generatorURL
+	var re = regexp.MustCompile(`generatorURL":"(.+?)tab=1`)
+	data := re.ReplaceAllString(string(body), `generatorURL":"`)
+	log.Info("new data: %v:", data)
+
+	if err == nil && data != "" {
+		err = json.Unmarshal([]byte(data), m)
 	}
 
-	log.Info("http request: %s", m)
+	log.Info("http request: %v", m)
 	for index := range m.Alerts {
 		hook.channel <- &m.Alerts[index]
 	}
