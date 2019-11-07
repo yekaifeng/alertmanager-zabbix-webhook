@@ -163,8 +163,12 @@ func (hook *WebHook) processAlerts() {
 				return
 			}
 
-			host, exists := a.Annotations[hook.config.ZabbixHostAnnotation]
-			if !exists {
+			log.Info("imcoming alert: %v", a)
+
+			var host = ""
+			if a.Labels["cluster"] == hook.config.ZabbixHostAnnotation {
+				host = hook.config.ZabbixHostAnnotation
+			} else {
 				host = hook.config.ZabbixHostDefault
 			}
 
@@ -223,6 +227,7 @@ func (hook *WebHook) processAlerts() {
 
 				metrics = append(metrics, zabbix.NewAlertMetric(alertLevel, alertStartTime, deviceIp, cluster, subject, id,
 					alertStatus, 0))
+				log.Infof("metrics: %v", metrics)
 			}
 		default:
 			if len(metrics) != 0 {

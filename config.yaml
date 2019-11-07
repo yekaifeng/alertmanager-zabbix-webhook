@@ -8,7 +8,7 @@ zabbixServerHost: node04.openshift.net.cn
 # Trapper port of your zabbix server
 zabbixServerPort: 10070
 # Look in this annotation for a zabbix host to send alerts to, if not present and no zabbixHostDefault is defined then alert will be ignored
-zabbixHostAnnotation: zabbix_host
+zabbixHostAnnotation: portal.openshift.net.cn
 # Default host to send alerts to
 zabbixHostDefault: ""
 # Items key prefix, keys will be zabbixKeyPrefix.alertname
