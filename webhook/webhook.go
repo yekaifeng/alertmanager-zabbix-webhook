@@ -201,9 +201,7 @@ func (hook *WebHook) processAlerts() {
 						t.Year(), t.Month(), t.Day(),
 						t.Hour(), t.Minute(), t.Second())
 					//Use alert start time as alert id
-					id = fmt.Sprintf("%d%02d%02d%02d%02d%02d%d",
-						t.Year(), t.Month(), t.Day(),
-						t.Hour(), t.Minute(), t.Second(), t.Nanosecond())
+					id = alertStartTime
 				}
 				cluster := fmt.Sprintf("%s", strings.ToLower(a.Labels["cluster"]))
 				severity := fmt.Sprintf("%s", strings.ToLower(a.Labels["severity"]))
@@ -219,10 +217,10 @@ func (hook *WebHook) processAlerts() {
 
 				log.Infof("added Alertmetrics.. ALERTLEVEL: '%s', ALERT_START_TIME: '%s', ALERT_STATUS: '%s',"+
 					"CUR_MONI_VALUE: '%s', DEVICE_IP: '%s', ID: '%s', MONI_OBJECT: '%s', SUBJECT: '%s'",
-					alertLevel, alertStartTime, alertStatus, 0, deviceIp, id, cluster, subject)
+					alertLevel, alertStartTime, alertStatus, alertname, deviceIp, id, cluster, subject)
 
 				metrics = append(metrics, zabbix.NewAlertMetric(alertLevel, alertStartTime, deviceIp, cluster, subject,
-					id, alertStatus, 0))
+					id, alertStatus, alertname))
 				log.Infof("metrics: %v", metrics)
 			}
 		default:

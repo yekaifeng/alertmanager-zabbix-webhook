@@ -24,8 +24,8 @@ type Metric struct {
 type AlertMetric struct {
 	Alert_level      string `json:"ALERT_LEVEL"`
 	Alert_start_time string `json:"ALERT_START_TIME"`
-	Alert_status     string  `json:"ALERT_STATUS"`
-	Cur_moni_value   uint16 `json:"CUR_MONI_VALUE"`
+	Alert_status     string `json:"ALERT_STATUS"`
+	Cur_moni_value   string `json:"CUR_MONI_VALUE"`
 	Device_ip        string `json:"DEVICE_IP"`
 	Id               string `json:"ID"`
 	Moni_object      string `json:"MONI_OBJECT"`
@@ -44,7 +44,7 @@ func NewMetric(host, key, value string, clock ...int64) *Metric {
 
 // AlertMetric class constructor.
 func NewAlertMetric(alert_level, alert_start_time, device_ip, moni_object, subject,
-	id, alert_status string, cur_moni_value uint16) *AlertMetric {
+	id, alert_status, cur_moni_value string) *AlertMetric {
 	m := &AlertMetric{Alert_level: alert_level,
 		              Alert_start_time: alert_start_time,
 	                  Alert_status: alert_status,
