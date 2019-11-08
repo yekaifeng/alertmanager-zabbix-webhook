@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"time"
+	"strconv"
 	"bytes"
 )
 
@@ -231,7 +232,7 @@ func (s *Sender) AlertSend(packet *AlertPacket) (res []byte, err error) {
 	}
 
 	client := &http.Client{}//客户端,被Get,Head以及Post使用
-	url := "http://" + iaddr.IP.String() + ":" + string(iaddr.Port)
+	url := "http://" + iaddr.IP.String() + ":" + strconv.Itoa(iaddr.Port)
 	reqest, err := http.NewRequest("POST", url, bytes.NewReader(dataPacket))
 	if err != nil {
 		fmt.Println("Fatal error ", err.Error())
