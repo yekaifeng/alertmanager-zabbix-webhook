@@ -1,6 +1,7 @@
 package webhook
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -219,8 +220,10 @@ func (hook *WebHook) processAlerts() {
 					"CUR_MONI_VALUE: '%s', DEVICE_IP: '%s', ID: '%s', MONI_OBJECT: '%s', SUBJECT: '%s'",
 					alertLevel, alertStartTime, alertStatus, alertname, deviceIp, id, cluster, subject)
 
-				metrics = append(metrics, zabbix.NewAlertMetric(alertLevel, alertStartTime, deviceIp, cluster, subject,
-					id, alertStatus, alertname))
+				//base64 encoding for subject and alertname
+				metrics = append(metrics, zabbix.NewAlertMetric(alertLevel, alertStartTime, deviceIp, cluster,
+					base64.StdEncoding.EncodeToString([]byte(subject)),
+					id, alertStatus, base64.StdEncoding.EncodeToString([]byte(alertname))))
 				log.Infof("metrics: %v", metrics)
 			}
 		default:
