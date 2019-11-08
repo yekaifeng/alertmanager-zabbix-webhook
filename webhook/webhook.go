@@ -206,6 +206,9 @@ func (hook *WebHook) processAlerts() {
 				}
 				cluster := fmt.Sprintf("%s", strings.ToLower(a.Labels["cluster"]))
 				severity := fmt.Sprintf("%s", strings.ToLower(a.Labels["severity"]))
+				if cluster == "" {
+					cluster = hook.config.ZabbixHostAnnotation
+				}
 
 				// classify alert level
 				if severity == "critical" {
