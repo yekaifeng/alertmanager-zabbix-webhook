@@ -221,7 +221,7 @@ func (s *Sender) AlertSend(packet *AlertPacket) (res []byte, err error) {
 	// Get ip and port to zabbix host
 	iaddr, err := s.getTCPAddr()
 	if err != nil {
-		return _, err
+		return nil, err
 	}
 
 	// New http client for Post
