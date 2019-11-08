@@ -42,7 +42,7 @@ func NewMetric(host, key, value string, clock ...int64) *Metric {
 	return m
 }
 
-// Metric class constructor.
+// AlertMetric class constructor.
 func NewAlertMetric(alert_level, alert_start_time, device_ip, moni_object, subject,
 	id, alert_status string, cur_moni_value uint16) *AlertMetric {
 	m := &AlertMetric{Alert_level: alert_level,
@@ -81,7 +81,7 @@ func NewPacket(data []*Metric, clock ...int64) *Packet {
 
 // Packet class cunstructor.
 func NewAlertPacket(data []*AlertMetric, clock ...int64) *AlertPacket {
-	p := &AlertPacket{Request: `sender data`, Data: data}
+	p := &AlertPacket{Request: `ocp alerts`, Data: data}
 	// use current time, if `clock` is not specified
 	if p.Clock = time.Now().Unix(); len(clock) > 0 {
 		p.Clock = int64(clock[0])
@@ -91,13 +91,6 @@ func NewAlertPacket(data []*AlertMetric, clock ...int64) *AlertPacket {
 
 // DataLen Packet class method, return 8 bytes with packet length in little endian order.
 func (p *Packet) DataLen() []byte {
-	dataLen := make([]byte, 8)
-	JSONData, _ := json.Marshal(p)
-	binary.LittleEndian.PutUint32(dataLen, uint32(len(JSONData)))
-	return dataLen
-}
-
-func (p *AlertPacket) DataLen() []byte {
 	dataLen := make([]byte, 8)
 	JSONData, _ := json.Marshal(p)
 	binary.LittleEndian.PutUint32(dataLen, uint32(len(JSONData)))
@@ -225,29 +218,31 @@ func (s *Sender) AlertSend(packet *AlertPacket) (res []byte, err error) {
 
 	dataPacket, _ := json.Marshal(packet)
 
-	// Open connection to zabbix host
+	// Get ip and port to zabbix host
 	iaddr, err := s.getTCPAddr()
 	if err != nil {
-		return
+		return _, err
 	}
 
-	client := &http.Client{}//客户端,被Get,Head以及Post使用
+	// New http client for Post
+	client := &http.Client{}
 	url := "http://" + iaddr.IP.String() + ":" + strconv.Itoa(iaddr.Port)
 	reqest, err := http.NewRequest("POST", url, bytes.NewReader(dataPacket))
 	if err != nil {
 		fmt.Println("Fatal error ", err.Error())
 	}
-	//给一个key设定为响应的value.
-	reqest.Header.Set("Content-Type", "application/json") //必须设定该参数,POST参数才能正常提交
+	//Set request header
+	reqest.Header.Set("Content-Type", "application/json")
 
-	resp, err := client.Do(reqest)//发送请求
-	defer resp.Body.Close()//一定要关闭resp.Body
+	//Send request
+	resp, err := client.Do(reqest)
+	defer resp.Body.Close()
+
 	content, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("Fatal error ", err.Error())
 	}
-
 	fmt.Printf("response: %s:", string(content))
 
-	return
+	return content, err
 }

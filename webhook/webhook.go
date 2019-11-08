@@ -136,14 +136,14 @@ func (hook *WebHook) postHandler(w http.ResponseWriter, r *http.Request) {
 	//workaround to remove quotation marks in generatorURL
 	var re = regexp.MustCompile(`generatorURL":"(.+?)tab=1`)
 	data := re.ReplaceAllString(string(body), `generatorURL":"`)
-	log.Info("new data: %v:", data)
+	log.Info("hook request: %s:", data)
 
 	dataByte := []byte(data)
 	if err == nil && dataByte != nil {
 		err = json.Unmarshal(dataByte, &m)
 	}
 
-	log.Info("http request: %v", m)
+	log.Debug("http request: %v", m)
 	for index := range m.Alerts {
 		hook.channel <- &m.Alerts[index]
 	}
@@ -164,7 +164,7 @@ func (hook *WebHook) processAlerts() {
 				return
 			}
 
-			log.Info("imcoming alert: %v", a)
+			log.Info("incoming alert: %v", a)
 
 			var host = ""
 			if a.Labels["cluster"] == hook.config.ZabbixHostAnnotation {
@@ -186,7 +186,7 @@ func (hook *WebHook) processAlerts() {
 					alertStatus = "1"
 				}
 
-				//Collect alert informations fro description and message in Annotation
+				//Collect alert information for description and message in Annotation
 				if _, ok := a.Annotations["description"]; ok {
 					subject += fmt.Sprintf("%s: %s", alertname, strings.ToLower(a.Annotations["description"]))
 				} else if _, ok := a.Annotations["message"]; ok {
@@ -200,8 +200,8 @@ func (hook *WebHook) processAlerts() {
 					alertStartTime = fmt.Sprintf("%d%02d%02d%02d%02d%02d",
 						t.Year(), t.Month(), t.Day(),
 						t.Hour(), t.Minute(), t.Second())
-					//use time as alert id
-					id = fmt.Sprintf("%d%02d%02d%02d%02d%02d",
+					//Use alert start time as alert id
+					id = fmt.Sprintf("%d%02d%02d%02d%02d%02d%d",
 						t.Year(), t.Month(), t.Day(),
 						t.Hour(), t.Minute(), t.Second(), t.Nanosecond())
 				}
@@ -217,15 +217,12 @@ func (hook *WebHook) processAlerts() {
 					alertLevel = "2"
 				}
 
-				log.Infof("added Zabbix alertmetrics, ALERTLEVEL: '%s', ALERT_START_TIME: '%s', ALERT_STATUS: '%s',"+
+				log.Infof("added Alertmetrics.. ALERTLEVEL: '%s', ALERT_START_TIME: '%s', ALERT_STATUS: '%s',"+
 					"CUR_MONI_VALUE: '%s', DEVICE_IP: '%s', ID: '%s', MONI_OBJECT: '%s', SUBJECT: '%s'",
 					alertLevel, alertStartTime, alertStatus, 0, deviceIp, id, cluster, subject)
 
-				//metrics = append(metrics, zabbix.NewAlertMetric(alertLevel, alertStartTime, device_ip, moni_object, subject,
-				//	alertStatus, cur_moni_value, id))
-
-				metrics = append(metrics, zabbix.NewAlertMetric(alertLevel, alertStartTime, deviceIp, cluster, subject, id,
-					alertStatus, 0))
+				metrics = append(metrics, zabbix.NewAlertMetric(alertLevel, alertStartTime, deviceIp, cluster, subject,
+					id, alertStatus, 0))
 				log.Infof("metrics: %v", metrics)
 			}
 		default:
@@ -262,11 +259,12 @@ func (hook *WebHook) zabbixAlertSend(metrics []*zabbix.AlertMetric) {
 	// Send packet to zabbix
 	log.Infof("sending to zabbix '%s:%d'", hook.config.ZabbixServerHost, hook.config.ZabbixServerPort)
 	z := zabbix.NewSender(hook.config.ZabbixServerHost, hook.config.ZabbixServerPort)
-	_, err := z.AlertSend(packet)
+	response, err := z.AlertSend(packet)
 	if err != nil {
 		log.Error(err)
 	} else {
 		log.Info("successfully sent alert")
+		log.Info("response: %s", string(response[:]))
 	}
 
 }
