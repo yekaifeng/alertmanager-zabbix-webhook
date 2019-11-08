@@ -30,7 +30,7 @@ type WebHookConfig struct {
 	ZabbixHostDefault    string `yaml:"zabbixHostDefault"`
 	ZabbixHostAnnotation string `yaml:"zabbixHostAnnotation"`
 	ZabbixKeyPrefix      string `yaml:"zabbixKeyPrefix"`
-	OcpPortalAddress     string `yaml:"OcpPortalAddress"`
+	OcpPortalAddress     string `yaml:"ocpPortalAddress"`
 }
 
 type HookRequest struct {
@@ -78,6 +78,7 @@ func ConfigFromFile(filename string) (cfg *WebHookConfig, err error) {
 		ZabbixHostAnnotation: "zabbix_host",
 		ZabbixKeyPrefix:      "prometheus",
 		ZabbixHostDefault:    "",
+		OcpPortalAddress:     "",
 	}
 
 	err = yaml.Unmarshal(configFile, &config)
@@ -180,9 +181,9 @@ func (hook *WebHook) processAlerts() {
 				var alertStartTime = ""
 				var id = ""
 				alertname := fmt.Sprintf("%s.%s", hook.config.ZabbixKeyPrefix, strings.ToLower(a.Labels["alertname"]))
-				alertStatus := false
+				alertStatus := "0"
 				if a.Status == "firing" {
-					alertStatus = true
+					alertStatus = "1"
 				}
 
 				//Collect alert informations fro description and message in Annotation
@@ -193,9 +194,7 @@ func (hook *WebHook) processAlerts() {
 				}
 
 				//Process alert start time
-				t, err := time.Parse(
-					time.RFC3339,
-					fmt.Sprintf("%s", strings.ToLower(a.StartsAt)))
+				t, err := time.Parse(time.RFC3339, a.StartsAt)
 
 				if err == nil {
 					alertStartTime = fmt.Sprintf("%d%02d%02d%02d%02d%02d",
