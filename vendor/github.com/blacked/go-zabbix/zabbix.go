@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"time"
 )
 
@@ -219,35 +220,32 @@ func (s *Sender) Send(packet *Packet) (res []byte, err error) {
 
 // Method Sender class, send packet to zabbix.
 func (s *Sender) AlertSend(packet *AlertPacket) (res []byte, err error) {
-	conn, err := s.connect()
-	if err != nil {
-		return
-	}
-	defer conn.Close()
 
 	dataPacket, _ := json.Marshal(packet)
 
-	/*
-	   fmt.Printf("HEADER: % x (%s)\n", s.getHeader(), s.getHeader())
-	   fmt.Printf("DATALEN: % x, %d byte\n", packet.DataLen(), len(packet.DataLen()))
-	   fmt.Printf("BODY: %s\n", string(dataPacket))
-	*/
-
-	// Fill buffer
-	buffer := append(s.getHeader(), packet.DataLen()...)
-	buffer = append(buffer, dataPacket...)
-
-	// Sent packet to zabbix
-	_, err = conn.Write(buffer)
+	// Open connection to zabbix host
+	iaddr, err := s.getTCPAddr()
 	if err != nil {
-		err = fmt.Errorf("Error while sending the data: %s", err.Error())
 		return
 	}
 
-	res, err = s.read(conn)
+	client := &http.Client{}//客户端,被Get,Head以及Post使用
+	url := "http://" + iaddr.IP.String() + ":" + string(iaddr.Port)
+	reqest, err := http.NewRequest("POST", url, bytes.NewReader(dataPacket))
+	if err != nil {
+		fmt.Println("Fatal error ", err.Error())
+	}
+	//给一个key设定为响应的value.
+	reqest.Header.Set("Content-Type", "application/json") //必须设定该参数,POST参数才能正常提交
 
-	/*
-	   fmt.Printf("RESPONSE: %s\n", string(res))
-	*/
+	resp, err := client.Do(reqest)//发送请求
+	defer resp.Body.Close()//一定要关闭resp.Body
+	content, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Fatal error ", err.Error())
+	}
+
+	fmt.Printf("response: %s:", string(content))
+
 	return
 }
