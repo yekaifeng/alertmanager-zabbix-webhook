@@ -259,12 +259,11 @@ func (hook *WebHook) zabbixAlertSend(metrics []*zabbix.AlertMetric) {
 	// Send packet to zabbix
 	log.Infof("sending to zabbix '%s:%d'", hook.config.ZabbixServerHost, hook.config.ZabbixServerPort)
 	z := zabbix.NewSender(hook.config.ZabbixServerHost, hook.config.ZabbixServerPort)
-	response, err := z.AlertSend(packet)
+	_, err := z.AlertSend(packet)
 	if err != nil {
 		log.Error(err)
 	} else {
 		log.Info("successfully sent alert")
-		log.Info("response: %s", string(response[:]))
 	}
 
 }
