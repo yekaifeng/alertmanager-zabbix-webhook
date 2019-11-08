@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"time"
+	"bytes"
 )
 
 // Metric class.
