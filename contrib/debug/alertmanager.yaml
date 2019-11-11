@@ -1,9 +1,9 @@
 global:
-  resolve_timeout: 5m
+  resolve_timeout: 1m
 route:
   group_wait: 30s
-  group_interval: 5m
-  repeat_interval: 12h
+  group_interval: 1m
+  repeat_interval: 1h
   receiver: 'zabbix'
   routes:
     - match:
@@ -18,18 +18,3 @@ receivers:
         send_resolved: true
 
 
-
-global:
-  resolve_timeout: 1m
-route:
-  receiver: 'zabbix'
-  group_by:
-    - 'job'
-  group_wait: 30s
-  group_interval: 1m
-  repeat_interval: 30s
-receivers:
-- name: 'zabbix'
-  webhook_configs:
-    - url: http://127.0.0.1:8080/alerts
-      send_resolved: true
