@@ -99,6 +99,7 @@ func (hook *WebHook) Start() error {
 	// Launch the listening thread
 	log.Println("Initializing HTTP server")
 	http.HandleFunc("/alerts", hook.alertsHandler)
+	http.HandleFunc("/health", hook.healthHandler)
 	err := http.ListenAndServe(":"+strconv.Itoa(hook.config.Port), nil)
 	if err != nil {
 		return fmt.Errorf("can't start the listening thread: %s", err)
@@ -117,6 +118,11 @@ func (hook *WebHook) alertsHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "unsupported HTTP method", 400)
 	}
+}
+
+func (hook *WebHook) healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(200)
+	w.Write([]byte("ok"))
 }
 
 func (hook *WebHook) postHandler(w http.ResponseWriter, r *http.Request) {
