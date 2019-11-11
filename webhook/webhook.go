@@ -31,6 +31,7 @@ type WebHookConfig struct {
 	ZabbixHostDefault    string `yaml:"zabbixHostDefault"`
 	ZabbixHostAnnotation string `yaml:"zabbixHostAnnotation"`
 	ZabbixKeyPrefix      string `yaml:"zabbixKeyPrefix"`
+	zabbixSubpath        string `yaml:"zabbixSubpath"`
 	OcpPortalAddress     string `yaml:"ocpPortalAddress"`
 }
 
@@ -79,6 +80,7 @@ func ConfigFromFile(filename string) (cfg *WebHookConfig, err error) {
 		ZabbixHostAnnotation: "zabbix_host",
 		ZabbixKeyPrefix:      "prometheus",
 		ZabbixHostDefault:    "",
+		zabbixSubpath:        "/PAAS",
 		OcpPortalAddress:     "",
 	}
 
@@ -225,8 +227,8 @@ func (hook *WebHook) processAlerts() {
 					alertLevel = "2"
 				}
 
-				log.Infof("added Alertmetrics.. ALERTLEVEL: '%s', ALERT_START_TIME: '%s', ALERT_STATUS: '%s',"+
-					"CUR_MONI_VALUE: '%s', DEVICE_IP: '%s', ID: '%s', MONI_OBJECT: '%s', SUBJECT: '%s'",
+				log.Infof("alertMetrics: {\"data\": [{ALERTLEVEL: '%s', ALERT_START_TIME: '%s', ALERT_STATUS: '%s',"+
+					"CUR_MONI_VALUE: '%s', DEVICE_IP: '%s', ID: '%s', MONI_OBJECT: '%s', SUBJECT: '%s'}]}",
 					alertLevel, alertStartTime, alertStatus, alertname, deviceIp, id, cluster, subject)
 
 				//base64 encoding for subject and alertname
@@ -237,7 +239,7 @@ func (hook *WebHook) processAlerts() {
 			}
 		default:
 			if len(metrics) != 0 {
-				hook.zabbixAlertSend(metrics)
+				hook.zabbixAlertSend(metrics, hook.config.zabbixSubpath)
 				metrics = metrics[:0]
 			} else {
 				time.Sleep(1 * time.Second)
@@ -262,14 +264,14 @@ func (hook *WebHook) zabbixSend(metrics []*zabbix.Metric) {
 
 }
 
-func (hook *WebHook) zabbixAlertSend(metrics []*zabbix.AlertMetric) {
+func (hook *WebHook) zabbixAlertSend(metrics []*zabbix.AlertMetric, subpath string) {
 	// Create instance of Packet class
 	packet := zabbix.NewAlertPacket(metrics)
 
 	// Send packet to zabbix
 	log.Infof("sending to zabbix '%s:%d'", hook.config.ZabbixServerHost, hook.config.ZabbixServerPort)
 	z := zabbix.NewSender(hook.config.ZabbixServerHost, hook.config.ZabbixServerPort)
-	_, err := z.AlertSend(packet)
+	_, err := z.AlertSend(packet, subpath)
 	if err != nil {
 		log.Error(err)
 	} else {

@@ -214,7 +214,7 @@ func (s *Sender) Send(packet *Packet) (res []byte, err error) {
 }
 
 // Method Sender class, send packet to zabbix.
-func (s *Sender) AlertSend(packet *AlertPacket) (res []byte, err error) {
+func (s *Sender) AlertSend(packet *AlertPacket, subpath string) (res []byte, err error) {
 
 	dataPacket, _ := json.Marshal(packet)
 
@@ -226,7 +226,7 @@ func (s *Sender) AlertSend(packet *AlertPacket) (res []byte, err error) {
 
 	// New http client for Post
 	client := &http.Client{}
-	url := "http://" + iaddr.IP.String() + ":" + strconv.Itoa(iaddr.Port)
+	url := "http://" + iaddr.IP.String() + ":" + strconv.Itoa(iaddr.Port) + subpath
 	reqest, err := http.NewRequest("POST", url, bytes.NewReader(dataPacket))
 	if err != nil {
 		fmt.Println("Fatal error ", err.Error())
